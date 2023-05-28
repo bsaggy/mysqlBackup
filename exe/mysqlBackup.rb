@@ -7,7 +7,7 @@ require 'optimist'
 require 'benchmark'
 require 'date'
 require 'logger'
-
+require 'fileutils'
 
 opts = Optimist::options do
   opt :zabhost, "Zabbix host to attach data to", :type => :string, :required => true
@@ -21,6 +21,7 @@ opts = Optimist::options do
   opt :mysqldumpopts, "Additional command line options for mysqldump", :type => :string
   opt :backupname, "Name of mysqlbackup. Default => dbname_yyyymmddThhmmss.sql.bak", :type => :string
   opt :backupdir, "Directory backup will be written to.", :type => :string, :default => '/var/lib/mysqlbackup' 
+  opt :pruneolderthan, "Deletes backups older than number of days specified.", :type => :integer
 end
 
 log = Logger.new(STDOUT)
@@ -43,10 +44,25 @@ log.info("Database backup Completed: #{opts[:mysqldb]}\n\tDuration: #{duration}s
 
 log.error(stderr) if not stderr.empty?
 
+backupsPruned = 0
+if opts[:pruneolderthan]
+  beforePrune = Dir.glob("#{opts[:backupdir]}/#{opts[:mysqldb]}*.bak").count
+  log.info("Removing backups older than #{opts[:pruneolderthan]} days:")  
+  Dir.glob("#{opts[:backupdir]}/*").each {|f|
+    if File.mtime(f).to_datetime < DateTime.now - opts[:pruneolderthan]
+      log.info("\t#{f}")
+      FileUtils.rm(f, verbose: true)
+    end
+  }
+  afterPrune = Dir.glob("#{opts[:backupdir]}/#{opts[:mysqldb]}*.bak").count
+  backupsPruned = beforePrune - afterPrune
+end
+
 # Instantiate a Zabbix Sender Batch object and add data to it
 batch = Zabbix::Sender::Batch.new(hostname: opts[:zabhost])
 batch.addItemData(key: 'mysql.backupDuration', value: duration)
 batch.addItemData(key: 'mysql.exitStatus', value: status.exitstatus)
 batch.addItemData(key: 'mysql.backupSize', value: backupSize)
+batch.addItemData(key: 'mysql.backupsPruned', value: backupsPruned)
 sender = Zabbix::Sender::Pipe.new
 log.info(sender.sendBatchAtomic(batch))
