@@ -19,7 +19,8 @@ opts = Optimist::options do
   opt :mysqlport, "Port of mysql DB", :type => :string, :default => "3306"
   opt :mysqldb, "Name of mysql DB to backup", :type => :string
   opt :mysqldumpopts, "Additional command line options for mysqldump", :type => :string
-  opt :backupname, "Name of mysqlbackup. Default => dbname_yyyymmddThhmmss.sql.bak", :type => :string
+  opt :tables, "Backup database to individual tables using --tab parameter. Uses :backupname if True", :default => false
+  opt :backupname, "Name of mysqlbackup. Default => dbname_yyyymmddThhmmss", :type => :string
   opt :backupdir, "Directory backup will be written to.", :type => :string, :default => '/var/lib/mysqlbackup' 
   opt :pruneolderthan, "Deletes backups older than number of days specified.", :type => :integer
 end
@@ -29,10 +30,16 @@ log.level = Logger::INFO
 
 abort("Backup Directory does not exist: #{opts[:backupdir]}") if not Dir.exist?(opts[:backupdir])
 
-opts[:backupname] = "#{opts[:mysqldb]}_#{DateTime.now.strftime('%Y%m%dT%H%M%S')}.sql.bak" if not opts[:backupname]
-backupPath = "#{opts[:backupdir]}/#{opts[:backupname]}"
-cmd = "mysqldump #{opts[:mysqldumpopts]} -h#{opts[:mysqlhost]} -P#{opts[:mysqlport]} -u#{opts[:mysqluser]} -p#{opts[:mysqlpass]} #{opts[:mysqldb]} > #{backupPath}"
-
+opts[:backupname] = "#{opts[:mysqldb]}_#{DateTime.now.strftime('%Y%m%dT%H%M%S')}" if not opts[:backupname]
+backupPath = "#{opts[:backupdir]}/#{opts[:backupname]}.sql.bak"
+if opts[:tables]
+  cmd = "mysqldump #{opts[:mysqldumpopts]} --tab #{opts[:backupdir]}/#{opts[:backupname]} -h#{opts[:mysqlhost]} -P#{opts[:mysqlport]} -u#{opts[:mysqluser]} -p#{opts[:mysqlpass]} #{opts[:mysqldb]}"
+  puts "Creating directory #{opts[:backupdir]}/#{opts[:backupname]}"
+  FileUtils.mkdir_p "#{opts[:backupdir]}/#{opts[:backupname]}"
+else
+  cmd = "mysqldump #{opts[:mysqldumpopts]} -h#{opts[:mysqlhost]} -P#{opts[:mysqlport]} -u#{opts[:mysqluser]} -p#{opts[:mysqlpass]} #{opts[:mysqldb]} > #{backupPath}"
+end
+binding.pry
 # Capture the stdout, stderr, and status of mysqldump
 startTime = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 log.info("Database Backup Started: #{opts[:mysqldb]} to #{backupPath}\n\tCommand executed: #{cmd}")
