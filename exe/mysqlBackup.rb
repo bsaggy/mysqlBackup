@@ -52,15 +52,16 @@ log.error(stderr) if not stderr.empty?
 
 backupsPruned = 0
 if opts[:pruneolderthan]
-  beforePrune = Dir.glob("#{opts[:backupdir]}/#{opts[:mysqldb]}*.bak").count
+  beforePrune = Dir.glob("#{opts[:backupdir]}/#{opts[:mysqldb]}*").count
   log.info("Removing backups older than #{opts[:pruneolderthan]} days:")  
   Dir.glob("#{opts[:backupdir]}/*").each {|f|
     if File.mtime(f).to_datetime < DateTime.now - opts[:pruneolderthan]
       log.info("\t#{f}")
-      FileUtils.rm(f, verbose: true)
+      FileUtils.rm(f, verbose: true) if not opts[:tables] # Delete files if not using --tab
+      FileUtils.rm_r(f, verbose: true) if opts[:tables] # Delete directories if using --tab
     end
   }
-  afterPrune = Dir.glob("#{opts[:backupdir]}/#{opts[:mysqldb]}*.bak").count
+  afterPrune = Dir.glob("#{opts[:backupdir]}/#{opts[:mysqldb]}*").count
   backupsPruned = beforePrune - afterPrune
 end
 
