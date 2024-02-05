@@ -39,7 +39,6 @@ if opts[:tables]
 else
   cmd = "mysqldump #{opts[:mysqldumpopts]} -h#{opts[:mysqlhost]} -P#{opts[:mysqlport]} -u#{opts[:mysqluser]} -p#{opts[:mysqlpass]} #{opts[:mysqldb]} > #{backupPath}"
 end
-binding.pry
 # Capture the stdout, stderr, and status of mysqldump
 startTime = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 log.info("Database Backup Started: #{opts[:mysqldb]} to #{backupPath}\n\tCommand executed: #{cmd}")
