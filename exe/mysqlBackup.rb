@@ -36,7 +36,6 @@ backupDbName = "#{opts[:mysqldb]}_#{opts[:backupname]}"
 backupName = opts[:backupname] ? "#{DateTime.now.strftime('%Y%m%dT%H%M%S')}_#{backupDbName}" : "#{DateTime.now.strftime('%Y%m%dT%H%M%S')}_#{opts[:mysqldb]}"
 backupPath = "#{opts[:backupdir]}/#{backupName}.sql"
 
-binding.pry
 if opts[:tables]
   cmd = "mysqldump #{opts[:mysqldumpopts]} --tab #{opts[:backupdir]}/#{backupName} -h#{opts[:mysqlhost]} -P#{opts[:mysqlport]} -u#{opts[:mysqluser]} -p#{opts[:mysqlpass]} #{opts[:mysqldb]}"
   log.info("Creating directory #{opts[:backupdir]}/#{backupName}")
