@@ -35,5 +35,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'optimist'
   spec.add_dependency 'zabbix_sender_api'
   spec.add_dependency 'date'
-  spec.add_dependency 'logger'
+  spec.add_dependency 'logging'
 end
