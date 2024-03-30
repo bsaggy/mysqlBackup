@@ -60,15 +60,20 @@ log.error(stderr) if not stderr.empty?
 
 backupsPruned = 0
 if opts[:pruneolderthan]
-  beforePrune = Dir.glob("#{opts[:backupdir]}\/*_#{backupDbName}.sql").select {|f| File.mtime(f).to_datetime < DateTime.now - opts[:pruneolderthan]}
-  log.info("Found #{beforePrune.count} backups older than #{opts[:pruneolderthan]} days to prune")
-  beforePrune.each {|f|
+  beforePrune = Dir.glob("#{opts[:backupdir]}\/*_#{backupDbName}.sql")
+  toPrune = beforePrune.select {|f| 
+    File.mtime(f).to_datetime < DateTime.now - opts[:pruneolderthan]
+  }
+  log.info("Found #{toPrune.count} backups older than #{opts[:pruneolderthan]} days to prune")
+  toPrune.each {|f|
     log.debug("\tRemoving: #{f}")
     FileUtils.rm(f, verbose: true) if not opts[:tables] # Delete files if not using --tab
     FileUtils.rm_r(f, verbose: true) if opts[:tables] # Delete directories if using --tab
   }
+
   afterPrune = Dir.glob("#{opts[:backupdir]}\/*_#{backupDbName}.sql")
   backupsPruned = beforePrune.count - afterPrune.count
+  log.warn("Pruned backups is not the same as what should have been pruned: toPrune: #{toPrune.count}\tbackupsPruned: #{backupsPruned}") if toPrune.count != backupsPruned
   log.debug("Pruned #{backupsPruned} backups")
 end
 
@@ -77,7 +82,7 @@ batch = Zabbix::Sender::Batch.new(hostname: opts[:zabhost])
 batch.addItemData(key: 'mysql.backupDuration', value: duration)
 batch.addItemData(key: 'mysql.exitStatus', value: status.exitstatus)
 batch.addItemData(key: 'mysql.backupSize', value: backupSize)
-batch.addItemData(key: 'mysql.backupsPruned', value: backupsPruned)
+batch.addItemData(key: 'mysql.backupsPruned', value: backupsPruned.to_i)
 sender = Zabbix::Sender::Pipe.new(proxy: opts[:zabproxy])
 log.debug(batch.to_senderline)
 log.info(sender.sendBatchAtomic(batch))
