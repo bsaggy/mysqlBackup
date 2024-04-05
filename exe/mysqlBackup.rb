@@ -32,8 +32,8 @@ log = Logging.logger(STDOUT)
 log.level = opts[:loglevel].to_sym
 
 abort("Backup Directory does not exist: #{opts[:backupdir]}") if not Dir.exist?(opts[:backupdir])
-backupDbName = "#{opts[:mysqldb]}_#{opts[:backupname]}"
-backupName = opts[:backupname] ? "#{DateTime.now.strftime('%Y%m%dT%H%M%S')}_#{backupDbName}" : "#{DateTime.now.strftime('%Y%m%dT%H%M%S')}_#{opts[:mysqldb]}"
+backupDbName = opts[:backupname] ? "#{opts[:mysqldb]}_#{opts[:backupname]}" : "#{opts[:mysqldb]}"
+backupName = "#{DateTime.now.strftime('%Y%m%dT%H%M%S')}_#{backupDbName}"
 backupPath = "#{opts[:backupdir]}/#{backupName}.sql"
 
 if opts[:tables]
@@ -47,6 +47,7 @@ else
   cmd += opts[:cstream].nil? ? nil.to_s : " | cstream -t #{opts[:cstream]}"
   cmd += " > #{backupPath}"
 end
+
 # Capture the stdout, stderr, and status of mysqldump
 startTime = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 log.info("Database Backup Started: #{opts[:mysqldb]} to #{backupPath}\n\tCommand executed: #{cmd}")
